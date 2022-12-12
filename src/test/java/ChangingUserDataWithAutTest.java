@@ -2,16 +2,35 @@ import io.restassured.RestAssured;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
 import static org.hamcrest.CoreMatchers.equalTo;
+@RunWith(Parameterized.class)
+public class ChangingUserDataWithAutTest {
+    private final CreateUser user1;
+    private final CreateUser user2;
 
-public class ChangingUserDataTest {
     UserApi userApi = new UserApi();
     String message = "You should be authorised";
-    CreateUser firstUser = new CreateUser("kull001@yandex.ru","12345", "kull001");
-    CreateUser newUser = new CreateUser("kull001@yandex.ru","1234567", "kull001");
+
+    public ChangingUserDataWithAutTest(CreateUser user1, CreateUser user2) {
+        this.user1 = user1;
+        this.user2 = user2;
+    }
+
+    @Parameterized.Parameters
+    public static Object[][]SetUsers() {
+        return new Object[][]{
+                {new CreateUser("kull001@yandex.ru","12345", "kull001"),new CreateUser("kull0011@yandex.ru","12345", "kull001")},
+                {new CreateUser("kull001@yandex.ru","12345", "kull001"),new CreateUser("kull001@yandex.ru","1234567", "kull001")},
+                {new CreateUser("kull001@yandex.ru","12345", "kull001"),new CreateUser("kull001@yandex.ru","12345", "kull0011")},
+        };
+    }
+
+
     @Before
     public void setUp() {
         RestAssured.baseURI = "https://stellarburgers.nomoreparties.site/";
@@ -20,29 +39,20 @@ public class ChangingUserDataTest {
 
     @Test
     public void changeUserWithAutTest() {
-        userApi.createUser(firstUser);
-        userApi.changingUser()
-                .then().statusCode(SC_OK);
+        userApi.createUser(user1);
+        userApi.changingUser(user2)
+                .then().statusCode(SC_OK)
+                .and()
+                .assertThat().body("success",equalTo(true));
     }
 
-    @Test
-    public void changeUserWithoutAutCodeTest(){
-        userApi.invalidChangingUser()
-                .then().statusCode(SC_UNAUTHORIZED);
-    }
-
-    @Test
-    public void changeUserWithoutAutMessageTest(){
-        userApi.invalidChangingUser()
-                .then().assertThat().body("message", equalTo(message));
-    }
 
 
     @After
     public void delUser(){
 
-        userApi.deleteUser(firstUser);
-        userApi.deleteUser(newUser);
+        userApi.deleteUser(user1);
+        userApi.deleteUser(user2);
 
 
     }
